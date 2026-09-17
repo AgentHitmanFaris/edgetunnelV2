@@ -3,6 +3,401 @@ let config_JSON, 缓存SOCKS5白名单 = null, 调试日志打印 = false;
 let SOCKS5白名单 = ['*tapecontent.net', '*cloudatacdn.com', '*loadshare.org', '*cdn-centaurus.com', 'scholar.google.com'];
 const Pages静态页面 = 'https://edt-pages.github.io';
 
+
+function htmlErrorPage(title, heading, message, hintHtml) {
+	return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>${title}</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #0f172a;
+  color: #f8fafc;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.page-wrapper {
+  width: 100%;
+  max-width: 500px;
+}
+.card-container {
+  background: #1e293b;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 24px;
+  padding: 40px 32px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(239, 68, 68, 0.15);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.card-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ef4444, #f97316, #ef4444);
+}
+.page-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  background: rgba(239, 68, 68, 0.15);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+}
+.page-icon svg {
+  width: 36px;
+  height: 36px;
+  fill: currentColor;
+}
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 16px;
+}
+.error-sub {
+  display: block;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.error-sub strong {
+  color: #f87171;
+}
+.hint-box {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 18px 20px;
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.hint-box ol {
+  margin-left: 20px;
+  margin-top: 10px;
+}
+.hint-box li {
+  margin-bottom: 8px;
+}
+.hint-box code {
+  background: rgba(0, 0, 0, 0.4);
+  color: #38bdf8;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+.footer-hint {
+  font-size: 12px;
+  color: #64748b;
+}
+.footer-hint a {
+  color: #94a3b8;
+  text-decoration: none;
+}
+.footer-hint a:hover {
+  text-decoration: underline;
+}
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+  <div class="card-container">
+    <div class="page-icon">
+      <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+    </div>
+    <h1 class="page-title">${heading}</h1>
+    <div class="error-sub">${message}</div>
+    ${hintHtml || ''}
+    <div class="footer-hint">
+      Powered by <a href="https://github.com/AgentHitmanFaris/edgetunnelV2" target="_blank" rel="noopener">edgetunnelV2</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
+}
+
+function htmlNoKV() {
+	return htmlErrorPage(
+		'Configuration Error - KV Not Bound',
+		'KV Namespace Not Bound',
+		'Please bind a KV namespace with variable name <strong>KV</strong> in Cloudflare.',
+		`<div class="hint-box">
+      <strong style="color: #f1f5f9;">How to fix in Cloudflare Dashboard:</strong>
+      <ol>
+        <li>Open your <strong>Cloudflare Dashboard</strong></li>
+        <li>Go to <strong>Workers &amp; Pages</strong> and select your worker</li>
+        <li>Click <strong>Settings</strong> &gt; <strong>Bindings</strong></li>
+        <li>Click <strong>Add</strong> &gt; Choose <strong>KV namespace</strong></li>
+        <li>Set <strong>Variable name</strong> to <code>KV</code> and select your KV database</li>
+        <li>Click <strong>Save and deploy</strong></li>
+      </ol>
+    </div>`
+	);
+}
+
+function htmlNoADMIN() {
+	return htmlErrorPage(
+		'Configuration Error - ADMIN Password Not Set',
+		'ADMIN Variable Not Set',
+		'Please configure an environment variable with variable name <strong>ADMIN</strong> in Cloudflare.',
+		`<div class="hint-box">
+      <strong style="color: #f1f5f9;">How to fix in Cloudflare Dashboard:</strong>
+      <ol>
+        <li>Open your <strong>Cloudflare Dashboard</strong></li>
+        <li>Go to <strong>Workers &amp; Pages</strong> and select your worker</li>
+        <li>Click <strong>Settings</strong> &gt; <strong>Variables and Secrets</strong></li>
+        <li>Click <strong>Add</strong> and set Variable name to <code>ADMIN</code></li>
+        <li>Enter your password as the value</li>
+        <li>Click <strong>Save and deploy</strong></li>
+      </ol>
+    </div>`
+	);
+}
+
+function htmlLogin() {
+	return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Login - Admin Dashboard</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #0f172a;
+  color: #f8fafc;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.page-wrapper {
+  width: 100%;
+  max-width: 420px;
+}
+.card-container {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 44px 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.card-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #06b6d4, #3b82f6);
+}
+.page-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  background: rgba(59, 130, 246, 0.15);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+}
+.page-icon svg {
+  width: 32px;
+  height: 32px;
+  fill: currentColor;
+}
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 24px;
+}
+.page-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.input-wrapper {
+  position: relative;
+}
+.input-wrapper input {
+  width: 100%;
+  padding: 14px 16px 14px 44px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-wrapper input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+.input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  fill: #64748b;
+  pointer-events: none;
+}
+.btn-primary {
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.login-error {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.login-error-hidden {
+  display: none;
+}
+.footer-hint {
+  margin-top: 28px;
+  font-size: 12px;
+  color: #64748b;
+}
+.footer-hint a {
+  color: #94a3b8;
+  text-decoration: none;
+}
+.footer-hint a:hover {
+  text-decoration: underline;
+}
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+  <div class="card-container">
+    <div class="page-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+    </div>
+    <h1 class="page-title">Admin Login</h1>
+    <form id="loginForm" class="page-form">
+      <div class="input-wrapper">
+        <svg class="input-icon" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        <input type="password" id="password" name="password" placeholder="Enter Admin Password" required autofocus>
+      </div>
+      <button type="submit" class="btn-primary" id="loginBtn">Login</button>
+      <div id="errorMsg" class="login-error login-error-hidden"></div>
+    </form>
+    <div class="footer-hint">
+      Powered by <a href="https://github.com/AgentHitmanFaris/edgetunnelV2" target="_blank" rel="noopener">edgetunnelV2</a>
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const passwordInput = document.getElementById('password');
+  const loginBtn = document.getElementById('loginBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  
+  errorMsg.classList.add('login-error-hidden');
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Verifying...';
+
+  try {
+    const res = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'password=' + encodeURIComponent(passwordInput.value),
+      redirect: 'manual'
+    });
+
+    if (res.type === 'opaqueredirect') {
+      window.location.replace('/admin');
+      return;
+    }
+
+    if (res.ok) {
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        const data = await res.json();
+        if (data.success) {
+          window.location.replace('/admin');
+          return;
+        }
+      }
+      errorMsg.textContent = 'Incorrect password. Please try again.';
+      errorMsg.classList.remove('login-error-hidden');
+      passwordInput.focus();
+      passwordInput.select();
+    } else {
+      errorMsg.textContent = 'Login failed with status ' + res.status;
+      errorMsg.classList.remove('login-error-hidden');
+    }
+  } catch (err) {
+    errorMsg.textContent = 'Network error: ' + err.message;
+    errorMsg.classList.remove('login-error-hidden');
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Login';
+  }
+});
+</script>
+</body>
+</html>`;
+}
+
 async function 获取前端页面(pathWithQuery, status = 200) {
 	try {
 		const res = await fetch(Pages静态页面 + pathWithQuery);
@@ -12,126 +407,175 @@ async function 获取前端页面(pathWithQuery, status = 200) {
 		html = html.replace(/<title>登录设置页面<\/title>/i, '<title>Login</title>');
 		html = html.replace(/<title>配置错误<\/title>/i, '<title>Configuration Error</title>');
 
+		const dict = {
+			"管理后台": "Admin Dashboard",
+			"登录设置页面": "Login",
+			"配置错误": "Configuration Error",
+			"请输入管理密码": "Enter Admin Password",
+			"保存并登录": "Login",
+			"正在验证密码...": "Verifying password...",
+			"密码错误": "Incorrect password",
+			"管理密码": "Admin Password",
+			"管理员密码": "Admin Password",
+			"未配置 ADMIN 环境变量": "ADMIN environment variable not set",
+			"未设置 管理员密码": "ADMIN Password Not Set",
+			"未绑定 KV 命名空间": "KV namespace not bound",
+			"未绑定 KV命名空间": "KV namespace not bound",
+			"请在 Cloudflare 控制台添加": "Please configure in Cloudflare console",
+			"请绑定 KV 数据库": "Please bind KV database",
+			"基本配置": "Basic Config",
+			"节点管理": "Node Management",
+			"访问日志": "Access Logs",
+			"订阅管理": "Subscriptions",
+			"反代设置": "Reverse Proxy",
+			"系统设置": "System Settings",
+			"流量统计": "Traffic Statistics",
+			"高级设置": "Advanced Settings",
+			"保存配置": "Save Config",
+			"重置配置": "Reset Config",
+			"退出登录": "Logout",
+			"生成订阅": "Generate Subscription",
+			"复制订阅": "Copy Subscription",
+			"复制全部": "Copy All",
+			"测试延迟": "Test Latency",
+			"刷新日志": "Refresh Logs",
+			"清空日志": "Clear Logs",
+			"下载配置": "Download Config",
+			"导入配置": "Import Config",
+			"重命名": "Rename",
+			"全选": "Select All",
+			"反选": "Invert Selection",
+			"删除": "Delete",
+			"编辑": "Edit",
+			"添加": "Add",
+			"确认": "Confirm",
+			"取消": "Cancel",
+			"关闭": "Close",
+			"复制": "Copy",
+			"保存": "Save",
+			"重置": "Reset",
+			"刷新": "Refresh",
+			"搜索": "Search",
+			"配置已保存": "Configuration saved",
+			"配置已重置": "Configuration reset",
+			"保存成功": "Saved successfully",
+			"复制成功": "Copied successfully",
+			"重置成功": "Reset successfully",
+			"操作成功": "Operation successful",
+			"操作失败": "Operation failed",
+			"暂无数据": "No data available",
+			"加载中...": "Loading...",
+			"正在保存...": "Saving...",
+			"正在重置...": "Resetting...",
+			"正在测速...": "Testing latency...",
+			"成功": "Success",
+			"失败": "Failed",
+			"警告": "Warning",
+			"提示": "Notice",
+			"错误": "Error",
+			"状态": "Status",
+			"操作": "Action",
+			"类型": "Type",
+			"位置": "Location",
+			"时间": "Time",
+			"域名": "Domain",
+			"路径": "Path",
+			"端口": "Port",
+			"协议": "Protocol",
+			"密码": "Password",
+			"密钥": "Secret Key",
+			"节点列表": "Node List",
+			"节点名称": "Node Name",
+			"节点地址": "Node Address",
+			"优选节点": "Optimized Nodes",
+			"优选订阅": "Optimized Subscriptions",
+			"优选IP": "Optimized IP",
+			"反代IP": "Reverse Proxy IP",
+			"请求用量": "Request Usage",
+			"启用": "Enable",
+			"禁用": "Disable",
+			"开启": "On",
+			"默认": "Default",
+			"自定义": "Custom",
+			"全局": "Global",
+			"标准": "Standard",
+			"白名单": "Whitelist",
+			"黑名单": "Blacklist",
+			"中国移动": "China Mobile",
+			"中国联通": "China Unicom",
+			"中国电信": "China Telecom",
+			"移动优选": "Mobile Optimized",
+			"联通优选": "Unicom Optimized",
+			"电信优选": "Telecom Optimized",
+			"官方优选": "Official Optimized",
+			"CF官方优选": "CF Official",
+			"CF移动优选": "CF Mobile",
+			"CF联通优选": "CF Unicom",
+			"CF电信优选": "CF Telecom",
+			"返回顶部": "Back to Top",
+			"浅色模式": "Light Mode",
+			"深色模式": "Dark Mode",
+			"夜间模式": "Night Mode",
+			"主题切换": "Toggle Theme",
+			"地区": "Region",
+			"国家": "Country",
+			"城市": "City",
+			"运营商": "ISP",
+			"延迟": "Latency",
+			"丢包率": "Packet Loss",
+			"下载速度": "Download Speed",
+			"未知": "Unknown",
+			"订阅转换配置": "Subconverter Config",
+			"反代": "Reverse Proxy",
+			"优选订阅生成": "Optimized Subscription",
+			"路径模板": "Path Template",
+			"代理": "Proxy",
+			"启用全局代理": "Enable Global Proxy",
+			"更新": "Update",
+			"本地": "Local",
+			"列表": "List",
+			"国内": "Domestic",
+			"可用性验证": "Availability Check",
+			"国内测试": "Domestic Test",
+			"优选域名": "Optimized Domain",
+			"设置": "Settings",
+			"地址": "Address",
+			"参数": "Parameters",
+			"下拉框": "Dropdown",
+			"本地优选": "Local Optimized",
+			"模块": "Module",
+			"处理": "Process",
+			"数据": "Data",
+			"使用": "Use",
+			"墙外测试": "Global Test",
+			"说明": "Description",
+			"模式": "Mode",
+			"跳过证书验证": "Skip Cert Verification",
+			"当前版本": "Current Version",
+			"源码": "Source Code",
+			"确定": "OK",
+			"格式": "Format",
+			"检查": "Check",
+			"分片": "Fragment",
+			"清除": "Clear",
+			"获取更多": "Get More",
+			"强力驱动": "Powered by"
+		};
+
+		// Server-side translation
+		for (const [k, v] of Object.entries(dict)) {
+			html = html.replaceAll(k, v);
+		}
+		// Strip emojis
+		html = html.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]/gu, '');
+
 		const i18nScript = `<script>
 (function() {
-  const dict = {
-    "管理后台": "Admin Dashboard",
-    "登录设置页面": "Login",
-    "配置错误": "Configuration Error",
-    "请输入管理密码": "Enter Admin Password",
-    "保存并登录": "Login",
-    "正在验证密码...": "Verifying password...",
-    "密码错误": "Incorrect password",
-    "管理密码": "Admin Password",
-    "管理员密码": "Admin Password",
-    "未配置 ADMIN 环境变量": "ADMIN environment variable not set",
-    "未绑定 KV 命名空间": "KV namespace not bound",
-    "请在 Cloudflare 控制台添加": "Please configure in Cloudflare console",
-    "请绑定 KV 数据库": "Please bind KV database",
-    "基本配置": "Basic Config",
-    "节点管理": "Node Management",
-    "访问日志": "Access Logs",
-    "订阅管理": "Subscriptions",
-    "反代设置": "Reverse Proxy",
-    "系统设置": "System Settings",
-    "流量统计": "Traffic Statistics",
-    "高级设置": "Advanced Settings",
-    "保存配置": "Save Config",
-    "重置配置": "Reset Config",
-    "退出登录": "Logout",
-    "生成订阅": "Generate Subscription",
-    "复制订阅": "Copy Subscription",
-    "复制全部": "Copy All",
-    "测试延迟": "Test Latency",
-    "刷新日志": "Refresh Logs",
-    "清空日志": "Clear Logs",
-    "下载配置": "Download Config",
-    "导入配置": "Import Config",
-    "重命名": "Rename",
-    "全选": "Select All",
-    "反选": "Invert Selection",
-    "删除": "Delete",
-    "编辑": "Edit",
-    "添加": "Add",
-    "确认": "Confirm",
-    "取消": "Cancel",
-    "关闭": "Close",
-    "复制": "Copy",
-    "保存": "Save",
-    "重置": "Reset",
-    "刷新": "Refresh",
-    "搜索": "Search",
-    "配置已保存": "Configuration saved",
-    "配置已重置": "Configuration reset",
-    "保存成功": "Saved successfully",
-    "复制成功": "Copied successfully",
-    "重置成功": "Reset successfully",
-    "操作成功": "Operation successful",
-    "操作失败": "Operation failed",
-    "暂无数据": "No data available",
-    "加载中...": "Loading...",
-    "正在保存...": "Saving...",
-    "正在重置...": "Resetting...",
-    "正在测速...": "Testing latency...",
-    "成功": "Success",
-    "失败": "Failed",
-    "警告": "Warning",
-    "提示": "Notice",
-    "错误": "Error",
-    "状态": "Status",
-    "操作": "Action",
-    "类型": "Type",
-    "位置": "Location",
-    "时间": "Time",
-    "域名": "Domain",
-    "路径": "Path",
-    "端口": "Port",
-    "协议": "Protocol",
-    "密码": "Password",
-    "密钥": "Secret Key",
-    "节点列表": "Node List",
-    "节点名称": "Node Name",
-    "节点地址": "Node Address",
-    "优选节点": "Optimized Nodes",
-    "优选订阅": "Optimized Subscriptions",
-    "优选IP": "Optimized IP",
-    "反代IP": "Reverse Proxy IP",
-    "请求用量": "Request Usage",
-    "启用": "Enable",
-    "禁用": "Disable",
-    "开启": "On",
-    "默认": "Default",
-    "自定义": "Custom",
-    "全局": "Global",
-    "标准": "Standard",
-    "白名单": "Whitelist",
-    "黑名单": "Blacklist",
-    "中国移动": "China Mobile",
-    "中国联通": "China Unicom",
-    "中国电信": "China Telecom",
-    "移动优选": "Mobile Optimized",
-    "联通优选": "Unicom Optimized",
-    "电信优选": "Telecom Optimized",
-    "官方优选": "Official Optimized",
-    "CF官方优选": "CF Official",
-    "CF移动优选": "CF Mobile",
-    "CF联通优选": "CF Unicom",
-    "CF电信优选": "CF Telecom",
-    "返回顶部": "Back to Top",
-    "浅色模式": "Light Mode",
-    "深色模式": "Dark Mode",
-    "夜间模式": "Night Mode",
-    "主题切换": "Toggle Theme",
-    "地区": "Region",
-    "国家": "Country",
-    "城市": "City",
-    "运营商": "ISP",
-    "延迟": "Latency",
-    "丢包率": "Packet Loss",
-    "下载速度": "Download Speed"
-  };
+  const dict = ${JSON.stringify(dict)};
+  const emojiRegex = /[\\u{1F300}-\\u{1F9FF}]|[\\u{2600}-\\u{26FF}]|[\\u{2700}-\\u{27BF}]|[\\u{1F600}-\\u{1F64F}]|[\\u{1F680}-\\u{1F6FF}]/gu;
   function translateText(text) {
-    if (!text || !/[\\u4e00-\\u9fa5]/.test(text)) return text;
+    if (!text) return text;
+    text = text.replace(emojiRegex, '');
     for (const [k, v] of Object.entries(dict)) {
       if (text.includes(k)) text = text.replaceAll(k, v);
     }
@@ -145,7 +589,10 @@ async function 获取前端页面(pathWithQuery, status = 200) {
       if (node.tagName === 'SCRIPT' || node.tagName === 'STYLE') return;
       ['placeholder', 'title', 'alt', 'value'].forEach(attr => {
         const val = node.getAttribute && node.getAttribute(attr);
-        if (val && /[\\u4e00-\\u9fa5]/.test(val)) node.setAttribute(attr, translateText(val));
+        if (val) {
+          const t = translateText(val);
+          if (t !== val) node.setAttribute(attr, t);
+        }
       });
       for (let c = node.firstChild; c; c = c.nextSibling) walk(c);
     }
@@ -167,7 +614,7 @@ async function 获取前端页面(pathWithQuery, status = 200) {
     walk(document.body);
   }
 })();
-</script>`;
+<\/script>`;
 
 		if (html.includes('</head>')) {
 			html = html.replace('</head>', `${i18nScript}</head>`);
@@ -185,6 +632,7 @@ async function 获取前端页面(pathWithQuery, status = 200) {
 		return new Response('Error loading page: ' + e.message, { status: 500 });
 	}
 }
+
 ///////////////////////////////////////////////////////全局常量和工具函数///////////////////////////////////////////////
 const WS早期数据最大字节 = 8 * 1024, WS早期数据最大头长度 = Math.ceil(WS早期数据最大字节 * 4 / 3) + 4;
 const 上行合包目标字节 = 20 * 1024, 上行队列最大字节 = 16 * 1024 * 1024, 上行队列最大条目 = 4096;
@@ -263,7 +711,7 @@ export default {
 			return await 处理叉HTTP请求(request, userID, 反代上下文);
 		} else {
 			if (url.protocol === 'http:') return Response.redirect(url.href.replace(`http://${url.hostname}`, `https://${url.hostname}`), 301);
-			if (!管理员密码) return 获取前端页面('/noADMIN', 404);
+			if (!管理员密码) return new Response(htmlNoADMIN(), { status: 404, headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
 			if (env.KV && typeof env.KV.get === 'function') {
 				const 区分大小写访问路径 = url.pathname.slice(1);
 				if (区分大小写访问路径 === 加密秘钥 && 加密秘钥 !== 'DEFAULT_KEY_DO_NOT_USE_SET_KEY_VARIABLE_INSTEAD') {//快速订阅
@@ -285,7 +733,7 @@ export default {
 							return 响应;
 						}
 					}
-					return 获取前端页面('/login');
+					return new Response(htmlLogin(), { status: 200, headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
 				} else if (访问路径 === 'admin' || 访问路径.startsWith('admin/')) {//验证cookie后响应管理页面
 					const cookies = request.headers.get('Cookie') || '';
 					const authCookie = cookies.split(';').find(c => c.trim().startsWith('auth='))?.split('=')[1];
@@ -681,7 +1129,7 @@ export default {
 					const authCookie = cookies.split(';').find(c => c.trim().startsWith('auth='))?.split('=')[1];
 					if (authCookie && authCookie == await MD5MD5(UA + 加密秘钥 + 管理员密码)) return fetch(new Request('https://speed.cloudflare.com/locations', { headers: { 'Referer': 'https://speed.cloudflare.com/' } }));
 				} else if (访问路径 === 'robots.txt') return new Response('User-agent: *\nDisallow: /', { status: 200, headers: { 'Content-Type': 'text/plain; charset=UTF-8' } });
-			} else if (!envUUID) return 获取前端页面('/noKV', 404);
+			} else if (!envUUID) return new Response(htmlNoKV(), { status: 404, headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
 		}
 
 		let 伪装页URL = env.URL || 'nginx';
