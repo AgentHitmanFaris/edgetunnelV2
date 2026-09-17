@@ -451,15 +451,23 @@ async function 获取前端页面(pathWithQuery, status = 200) {
     return origConfirm.call(this, msg);
   };
 
+  function isProtected(node) {
+    let p = node;
+    while (p) {
+      if (p.tagName === 'SCRIPT' || p.tagName === 'STYLE' || p.tagName === 'TEXTAREA' || p.tagName === 'NOSCRIPT') return true;
+      p = p.parentElement;
+    }
+    return false;
+  }
+
   function walk(node) {
-    if (!node) return;
+    if (!node || isProtected(node)) return;
     if (node.nodeType === 3) {
       if (/[\u4e00-\u9fff]/.test(node.nodeValue)) {
         const t = translateText(node.nodeValue);
         if (t !== node.nodeValue) node.nodeValue = t;
       }
     } else if (node.nodeType === 1) {
-      if (node.tagName === 'SCRIPT' || node.tagName === 'STYLE') return;
       ['placeholder', 'title', 'alt', 'aria-label'].forEach(attr => {
         const val = node.getAttribute && node.getAttribute(attr);
         if (val && /[\u4e00-\u9fff]/.test(val)) {
@@ -482,7 +490,7 @@ async function 获取前端页面(pathWithQuery, status = 200) {
     for (let i = 0; i < mutations.length; i++) {
       const m = mutations[i];
       if (m.type === 'characterData') {
-        if (/[\u4e00-\u9fff]/.test(m.target.nodeValue)) {
+        if (!isProtected(m.target) && /[\u4e00-\u9fff]/.test(m.target.nodeValue)) {
           const t = translateText(m.target.nodeValue);
           if (t !== m.target.nodeValue) m.target.nodeValue = t;
         }
@@ -492,20 +500,25 @@ async function 获取前端页面(pathWithQuery, status = 200) {
     }
   });
 
-  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+  function init() {
+    walk(document.body);
+    observer.observe(document.body || document.documentElement, { childList: true, subtree: true, characterData: true });
+  }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => walk(document.body));
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    walk(document.body);
+    init();
   }
 })();
 <\/script>`;
 
-		if (html.includes('</head>')) {
+		if (html.includes('</body>')) {
+			html = html.replace('</body>', `${i18nScript}</body>`);
+		} else if (html.includes('</head>')) {
 			html = html.replace('</head>', `${i18nScript}</head>`);
 		} else {
-			html = i18nScript + html;
+			html = html + i18nScript;
 		}
 
 		const headers = new Headers(res.headers);
